@@ -46,6 +46,7 @@ internal partial class AST : HealerJob
             if (!InCombat())
             {
                 if (IsEnabled(CustomComboPreset.AST_DPS_AutoDraw) &&
+                    (Gauge.DrawnCrownCard is not CardType.Lord) &&
                     ActionReady(OriginalHook(AstralDraw)) &&
                     (Gauge.DrawnCards.All(x => x is CardType.None) || DrawnCard == CardType.None && Config.AST_ST_DPS_OverwriteCards))
                     return OriginalHook(AstralDraw);
@@ -63,9 +64,10 @@ internal partial class AST : HealerJob
                     return Variant.SpiritDart;
 
                 if (IsEnabled(CustomComboPreset.AST_DPS_LightSpeed) &&
+                    !HasEffect(Buffs.Lightspeed) &&
+                    ((GetRemainingCharges(Lightspeed) >= 1 && GetCooldownChargeRemainingTime(Lightspeed) <= 3) || GetRemainingCharges(Lightspeed) >= 2 || (CombatEngageDuration().TotalSeconds < 8) || GetRemainingCharges(Lightspeed) >= 1 && GetCooldownRemainingTime(Divination) <= 5) &&
                     ActionReady(Lightspeed) &&
                     GetTargetHPPercent() > Config.AST_DPS_LightSpeedOption &&
-                    IsMoving() &&
                     !HasEffect(Buffs.Lightspeed))
                     return Lightspeed;
 
@@ -75,7 +77,7 @@ internal partial class AST : HealerJob
 
                 //Play Card
                 if (IsEnabled(CustomComboPreset.AST_DPS_AutoPlay) &&
-                    ActionReady(Play1) &&
+                    ActionReady(Play1) && (GetCooldownRemainingTime(Divination) <= 3 || HasEffect(Buffs.Divination)) &&
                     Gauge.DrawnCards[0] is not CardType.None &&
                     CanSpellWeave())
                     return OriginalHook(Play1);
@@ -83,6 +85,7 @@ internal partial class AST : HealerJob
                 //Card Draw
                 if (IsEnabled(CustomComboPreset.AST_DPS_AutoDraw) &&
                     ActionReady(OriginalHook(AstralDraw)) &&
+                    Gauge.DrawnCrownCard is not CardType.Lord &&
                     (Gauge.DrawnCards.All(x => x is CardType.None) || DrawnCard == CardType.None && Config.AST_ST_DPS_OverwriteCards) &&
                     CanDelayedWeave())
                     return OriginalHook(AstralDraw);
@@ -112,6 +115,7 @@ internal partial class AST : HealerJob
                 if (ActionReady(OriginalHook(MinorArcana)) &&
                     IsEnabled(CustomComboPreset.AST_DPS_LazyLord) &&
                     Gauge.DrawnCrownCard is CardType.Lord &&
+                    HasEffect(Buffs.Divination) &&
                     HasBattleTarget() && CanDelayedWeave())
                     return OriginalHook(MinorArcana);
 
@@ -119,6 +123,7 @@ internal partial class AST : HealerJob
                 {
                     //Combust
                     if (IsEnabled(CustomComboPreset.AST_ST_DPS_CombustUptime) &&
+                        BossCheck() &&
                         !GravityList.Contains(actionID) &&
                         LevelChecked(Combust) &&
                         CombustList.TryGetValue(OriginalHook(Combust), out ushort dotDebuffID))

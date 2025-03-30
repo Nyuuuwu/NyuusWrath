@@ -122,6 +122,7 @@ internal partial class WHM : HealerJob
                     float refreshTimer = Config.WHM_ST_MainCombo_DoT_Adv ? Config.WHM_ST_MainCombo_DoT_Threshold : 3;
                     int hpThreshold = Config.WHM_ST_DPS_AeroOptionSubOption == 1 || !InBossEncounter() ? Config.WHM_ST_DPS_AeroOption : 0;
                     if (GetDebuffRemainingTime(dotDebuffID) <= refreshTimer &&
+                        BossCheck() &&
                         GetTargetHPPercent() > hpThreshold)
                         return OriginalHook(Aero);
                 }
@@ -159,7 +160,7 @@ internal partial class WHM : HealerJob
             bool thinAirReady = LevelChecked(ThinAir) && !HasEffect(Buffs.ThinAir) &&
                                 GetRemainingCharges(ThinAir) > Config.WHM_AoEHeals_ThinAir;
             bool canWeave = CanSpellWeave(0.3);
-            bool lucidReady = Role.CanLucidDream(Config.WHM_AoEHeals_Lucid,false); //canWeave will be the check
+            bool lucidReady = Role.CanLucidDream(Config.WHM_AoEHeals_Lucid, false); //canWeave will be the check
 
             bool plenaryReady = ActionReady(PlenaryIndulgence) &&
                                 (!Config.WHM_AoEHeals_PlenaryWeave ||
@@ -244,7 +245,7 @@ internal partial class WHM : HealerJob
                 Role.CanLucidDream(Config.WHM_STHeals_Lucid))
                 return Role.LucidDreaming;
 
-            foreach(int prio in Config.WHM_ST_Heals_Priority.Items.OrderBy(x => x))
+            foreach (int prio in Config.WHM_ST_Heals_Priority.Items.OrderBy(x => x))
             {
                 int index = Config.WHM_ST_Heals_Priority.IndexOf(prio);
                 int config = GetMatchingConfigST(index, OptionalTarget, out uint spell, out bool enabled);

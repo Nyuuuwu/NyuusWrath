@@ -11,7 +11,7 @@ internal partial class MCH : PhysRangedJob
 
         protected override uint Invoke(uint actionID)
         {
-            if (actionID is not (SplitShot or HeatedSplitShot))
+            if (actionID is not (SplitShot))
                 return actionID;
 
             if (Variant.CanCure(CustomComboPreset.MCH_Variant_Cure, Config.MCH_VariantCure))
@@ -155,7 +155,7 @@ internal partial class MCH : PhysRangedJob
 
         protected override uint Invoke(uint actionID)
         {
-            if (actionID is not (SplitShot or HeatedSplitShot))
+            if (actionID is not (SplitShot))
                 return actionID;
 
             if (Variant.CanCure(CustomComboPreset.MCH_Variant_Cure, Config.MCH_VariantCure))

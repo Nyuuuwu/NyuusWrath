@@ -174,9 +174,9 @@ internal partial class VPR
 
         internal override UserData ContentCheckConfig => Config.VPR_Balance_Content;
 
-        public override bool HasCooldowns() => 
+        public override bool HasCooldowns() =>
             IsOriginal(ReavingFangs) &&
-            GetRemainingCharges(Vicewinder) is 2 && 
+            GetRemainingCharges(Vicewinder) is 2 &&
             IsOffCooldown(SerpentsIre);
     }
 
@@ -188,6 +188,8 @@ internal partial class VPR
 
     public const uint
         ReavingFangs = 34607,
+        Windbite = 113,
+        Venbite = 100,
         ReavingMaw = 34615,
         Vicewinder = 34620,
         HuntersCoil = 34621,

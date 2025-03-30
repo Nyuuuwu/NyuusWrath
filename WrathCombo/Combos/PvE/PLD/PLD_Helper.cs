@@ -18,6 +18,7 @@ internal partial class PLD
 
     public const uint
         FastBlade = 9,
+        Windbite = 113,
         RiotBlade = 15,
         ShieldBash = 16,
         Sentinel = 17,

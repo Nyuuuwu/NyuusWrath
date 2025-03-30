@@ -43,9 +43,9 @@ internal partial class SGE : HealerJob
     {
         protected internal override CustomComboPreset Preset { get; } = CustomComboPreset.SGE_TauroDruo;
 
-        protected override uint Invoke(uint actionID) => 
-            (actionID is Taurochole) && 
-                (!LevelChecked(Taurochole) || IsOnCooldown(Taurochole)) 
+        protected override uint Invoke(uint actionID) =>
+            (actionID is Taurochole) &&
+                (!LevelChecked(Taurochole) || IsOnCooldown(Taurochole))
             ? Druochole
             : actionID;
     }
@@ -175,7 +175,7 @@ internal partial class SGE : HealerJob
 
         protected override uint Invoke(uint actionID)
         {
-            bool actionFound = actionID is Dosis2 || !Config.SGE_ST_DPS_Adv && DosisList.ContainsKey(actionID);
+            bool actionFound = actionID is Dosis;
 
             if (!actionFound)
                 return actionID;
@@ -199,6 +199,7 @@ internal partial class SGE : HealerJob
 
             // Rhizomata
             if (IsEnabled(CustomComboPreset.SGE_ST_DPS_Rhizo) && CanSpellWeave() &&
+                GetDebuffRemainingTime(Debuffs.EukrasianDosis3) > 5 &&
                 ActionReady(Rhizomata) && Gauge.Addersgall <= Config.SGE_ST_DPS_Rhizo)
                 return Rhizomata;
 
@@ -226,7 +227,8 @@ internal partial class SGE : HealerJob
                     {
                         if (Variant.CanSpiritDart(CustomComboPreset.SGE_DPS_Variant_SpiritDart)) return Variant.SpiritDart;
 
-                        if (!JustUsedOn(currentDosis.Eukrasian,CurrentTarget)) { 
+                        if (!JustUsedOn(currentDosis.Eukrasian, CurrentTarget))
+                        {
                             // Dosis DoT Debuff
                             float dotDebuff = GetDebuffRemainingTime(currentDosis.DebuffID);
 
@@ -249,15 +251,17 @@ internal partial class SGE : HealerJob
                 {
                     uint phlegma = OriginalHook(Phlegma);
 
-                    if (InActionRange(phlegma)
-                        && LevelChecked(phlegma)
-                        && GetRemainingCharges(phlegma) > Config.SGE_ST_DPS_Phlegma)
+                    if (InActionRange(phlegma) && CombatEngageDuration().TotalSeconds > 7.5 &&
+                        ActionReady(phlegma) && (GetRemainingCharges(Phlegma) == 1 &&
+                        GetCooldownChargeRemainingTime(Phlegma) <= 5) ||
+                        (GetRemainingCharges(Phlegma) == 2) && CombatEngageDuration().TotalSeconds > 7.5)
                         return phlegma;
                 }
 
                 // Psyche
                 if (IsEnabled(CustomComboPreset.SGE_ST_DPS_Psyche) &&
                     ActionReady(Psyche) &&
+                    CombatEngageDuration().TotalSeconds > 7.5 &&
                     InCombat() && CanSpellWeave())
                     return Psyche;
 
@@ -359,7 +363,7 @@ internal partial class SGE : HealerJob
                 FindEffect(Buffs.Kardion, healTarget, LocalPlayer?.GameObjectId) is null)
                 return Kardia;
 
-            for(int i = 0; i < Config.SGE_ST_Heals_Priority.Count; i++)
+            for (int i = 0; i < Config.SGE_ST_Heals_Priority.Count; i++)
             {
                 int index = Config.SGE_ST_Heals_Priority.IndexOf(i + 1);
                 int config = GetMatchingConfigST(index, OptionalTarget, out uint spell, out bool enabled);
@@ -409,7 +413,7 @@ internal partial class SGE : HealerJob
                 return Rhizomata;
 
             float averagePartyHP = GetPartyAvgHPPercent();
-            for(int i = 0; i < Config.SGE_AoE_Heals_Priority.Count; i++)
+            for (int i = 0; i < Config.SGE_AoE_Heals_Priority.Count; i++)
             {
                 int index = Config.SGE_AoE_Heals_Priority.IndexOf(i + 1);
                 int config = GetMatchingConfigAoE(index, out uint spell, out bool enabled);

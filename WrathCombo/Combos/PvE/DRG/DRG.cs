@@ -223,7 +223,7 @@ internal partial class DRG : MeleeJob
         protected override uint Invoke(uint actionID)
         {
             // Don't change anything if not basic skill
-            if (actionID is not TrueThrust)
+            if (actionID is not WindBite)
                 return actionID;
 
             if (Variant.CanCure(CustomComboPreset.DRG_Variant_Cure, Config.DRG_Variant_Cure))
@@ -403,6 +403,8 @@ internal partial class DRG : MeleeJob
 
                 if (ComboAction is WheelingThrust or FangAndClaw && LevelChecked(Drakesbane))
                     return Drakesbane;
+
+                else return OriginalHook(TrueThrust);
             }
 
             return actionID;

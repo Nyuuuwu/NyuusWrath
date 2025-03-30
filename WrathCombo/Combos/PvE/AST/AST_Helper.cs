@@ -16,8 +16,8 @@ namespace WrathCombo.Combos.PvE;
 internal partial class AST
 {
     internal static readonly List<uint>
-        MaleficList = [Malefic, Malefic2, Malefic3, Malefic4, FallMalefic],
-        GravityList = [Gravity, Gravity2];
+        MaleficList = [Malefic],
+        GravityList = [Gravity];
     internal static Dictionary<uint, ushort>
         CombustList = new()
         {
@@ -41,7 +41,7 @@ internal partial class AST
             idx = 0;
 
         int ret = 0;
-        for(int i = idx; i < ActionWatching.CombatActions.Count; i++)
+        for (int i = idx; i < ActionWatching.CombatActions.Count; i++)
         {
             if (ActionWatching.GetAttackType(ActionWatching.CombatActions[i]) == ActionWatching.ActionAttackType.Spell)
                 ret++;
@@ -99,7 +99,7 @@ internal partial class AST
             return false;
 
         List<IBattleChara> targets = new();
-        for(int i = 1; i <= 8; i++) //Checking all 8 available slots and skipping nulls & DCs
+        for (int i = 1; i <= 8; i++) //Checking all 8 available slots and skipping nulls & DCs
         {
             if (CustomComboFunctions.GetPartySlot(i) is not IBattleChara member)
                 continue;
@@ -175,7 +175,7 @@ internal partial class AST
                 return false;
             CardType cardDrawn = Gauge.DrawnCards[0];
             PartyTargets.Clear();
-            for(int i = 1; i <= 8; i++) //Checking all 8 available slots and skipping nulls & DCs
+            for (int i = 1; i <= 8; i++) //Checking all 8 available slots and skipping nulls & DCs
             {
                 if (GetPartySlot(i) is not IBattleChara member)
                     continue;
@@ -198,82 +198,75 @@ internal partial class AST
 
                 PartyTargets.Add(member);
             }
-            //The inevitable "0 targets found" because of debuffs
+
+            // If no potential targets, log and return false
             if (PartyTargets.Count == 0)
             {
-                for(int i = 1; i <= 8; i++) //Checking all 8 available slots and skipping nulls & DCs
-                {
-                    if (GetPartySlot(i) is not IBattleChara member)
-                        continue;
-                    if (member is null)
-                        continue; //Skip nulls/disconnected people
-                    if (member.IsDead)
-                        continue;
-                    if (OutOfRange(Balance, member))
-                        continue;
-
-                    if (FindEffectOnMember(Buffs.BalanceBuff, member) is not null)
-                        continue;
-                    if (FindEffectOnMember(Buffs.SpearBuff, member) is not null)
-                        continue;
-
-                    PartyTargets.Add(member);
-                }
+                Svc.Log.Debug("No valid targets found after initial filtering.");
+                return false;
             }
 
-            if (SelectedRandomMember is not null)
+            // Step 2: Check high-priority targets in order
+            List<byte> priorityList = cardDrawn switch
             {
-                if (PartyTargets.Any(x => x.GameObjectId == SelectedRandomMember.GameObjectId))
-                {
-                    //TargetObject(SelectedRandomMember);
-                    return true;
-                }
-            }
+                CardType.Balance => JobIDs.MeleePriority,
+                CardType.Spear => JobIDs.RangedPriority,
+                _ => new List<byte>() // Use an empty list instead of null
+            };
 
-            if (PartyTargets.Count > 0)
+            if (priorityList is not null)
             {
-                PartyTargets.Shuffle();
-                //Give card to DPS first
-                for(int i = 0; i <= PartyTargets.Count - 1; i++)
+                foreach (byte priorityJob in priorityList)
                 {
-                    byte job = PartyTargets[i] is IBattleChara ? (byte)(PartyTargets[i] as IBattleChara).ClassJob.RowId : (byte)0;
-                    if (cardDrawn is CardType.Balance && JobIDs.Melee.Contains(job) ||
-                        cardDrawn is CardType.Spear && JobIDs.Ranged.Contains(job))
+                    foreach (var target in PartyTargets)
                     {
-                        //TargetObject(PartyTargets[i]);
-                        SelectedRandomMember = PartyTargets[i];
-                        return true;
-                    }
-                }
-                //Give card to unsuitable DPS next
-                for(int i = 0; i <= PartyTargets.Count - 1; i++)
-                {
-                    byte job = PartyTargets[i] is IBattleChara ? (byte)(PartyTargets[i] as IBattleChara).ClassJob.RowId : (byte)0;
-                    if (cardDrawn is CardType.Balance && JobIDs.Ranged.Contains(job) ||
-                        cardDrawn is CardType.Spear && JobIDs.Melee.Contains(job))
-                    {
-                        //TargetObject(PartyTargets[i]);
-                        SelectedRandomMember = PartyTargets[i];
-                        return true;
-                    }
-                }
-
-                //Give cards to healers/tanks if backup is turned on
-                if (IsEnabled(CustomComboPreset.AST_Cards_QuickTargetCards_TargetExtra))
-                {
-                    for(int i = 0; i <= PartyTargets.Count - 1; i++)
-                    {
-                        byte job = PartyTargets[i] is IBattleChara ? (byte)(PartyTargets[i] as IBattleChara).ClassJob.RowId : (byte)0;
-                        if (cardDrawn is CardType.Balance && JobIDs.Tank.Contains(job) ||
-                            cardDrawn is CardType.Spear && JobIDs.Healer.Contains(job))
+                        if (target is IBattleChara battleChara && (byte)battleChara.ClassJob.RowId == priorityJob)
                         {
-                            //TargetObject(PartyTargets[i]);
-                            SelectedRandomMember = PartyTargets[i];
+                            SelectedRandomMember = target;
+                            Svc.Log.Debug($"Selected high-priority target: {battleChara.Name}");
                             return true;
                         }
                     }
                 }
             }
+
+            // Step 3: Fallback to suitable DPS (general melee/ranged list)
+            foreach (var target in PartyTargets)
+            {
+                if (target is IBattleChara battleChara)
+                {
+                    byte job = (byte)battleChara.ClassJob.RowId;
+                    if ((cardDrawn is CardType.Balance && JobIDs.Melee.Contains(job)) ||
+                        (cardDrawn is CardType.Spear && JobIDs.Ranged.Contains(job)))
+                    {
+                        SelectedRandomMember = target;
+                        Svc.Log.Debug($"Selected fallback DPS target: {battleChara.Name}");
+                        return true;
+                    }
+                }
+            }
+
+            // Step 4: Give cards to tanks/healers if backup is enabled
+            if (IsEnabled(CustomComboPreset.AST_Cards_QuickTargetCards_TargetExtra))
+            {
+                foreach (var target in PartyTargets)
+                {
+                    if (target is IBattleChara battleChara)
+                    {
+                        byte job = (byte)battleChara.ClassJob.RowId;
+                        if ((cardDrawn is CardType.Balance && JobIDs.Tank.Contains(job)) ||
+                            (cardDrawn is CardType.Spear && JobIDs.Healer.Contains(job)))
+                        {
+                            SelectedRandomMember = target;
+                            Svc.Log.Debug($"Selected healer/tank backup target: {battleChara.Name}");
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            // Step 5: Handle the "0 targets found" case by logging it (failsafe)
+            Svc.Log.Debug("No valid targets found after checking priorities and backups.");
             return false;
         }
     }

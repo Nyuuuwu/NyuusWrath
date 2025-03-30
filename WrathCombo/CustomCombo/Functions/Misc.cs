@@ -106,6 +106,32 @@ namespace WrathCombo.CustomComboNS.Functions
             }
 
             //  Job IDs     ClassIDs (no jobstone) (Lancer, Pugilist, etc)
+            public static readonly List<byte> MeleePriority =
+            [
+            SAM.JobID,
+            NIN.JobID, NIN.ClassID,
+            DRG.JobID, DRG.ClassID,
+            RPR.JobID,
+            VPR.JobID,
+            MNK.JobID, MNK.ClassID,
+            DRK.JobID,
+            WAR.JobID,
+            PLD.JobID,
+            GNB.JobID,
+            PCT.JobID,
+            ];
+
+            public static readonly List<byte> RangedPriority =
+            [
+                PCT.JobID,              // Pct has the highest priority for Spear
+                SMN.JobID, SMN.ClassID, // Then Smn
+                MCH.JobID,              // Finally Machinist
+                BRD.JobID, BRD.ClassID,
+                RDM.JobID,
+                DNC.JobID,
+                BLM.JobID, BLM.ClassID
+            ];
+
             public static readonly List<byte> Melee =
             [
                 DRG.JobID, DRG.ClassID,

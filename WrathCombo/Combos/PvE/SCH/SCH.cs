@@ -262,7 +262,7 @@ internal partial class SCH : HealerJob
                 }
 
                 //Bio/Biolysis
-                if (IsEnabled(CustomComboPreset.SCH_DPS_Bio) && LevelChecked(Bio) && InCombat() &&
+                if (IsEnabled(CustomComboPreset.SCH_DPS_Bio) && LevelChecked(Bio) && InCombat() && BossCheck() &&
                     BioList.TryGetValue(OriginalHook(Bio), out ushort dotDebuffID))
                 {
                     if (Variant.CanSpiritDart(CustomComboPreset.SCH_DPS_Variant_SpiritDart))
@@ -354,7 +354,7 @@ internal partial class SCH : HealerJob
                 return Role.LucidDreaming;
 
             float averagePartyHP = GetPartyAvgHPPercent();
-            for(int i = 0; i < Config.SCH_AoE_Heals_Priority.Count; i++)
+            for (int i = 0; i < Config.SCH_AoE_Heals_Priority.Count; i++)
             {
                 int index = Config.SCH_AoE_Heals_Priority.IndexOf(i + 1);
                 int config = GetMatchingConfigAoE(index, out uint spell, out bool enabled);
@@ -445,7 +445,7 @@ internal partial class SCH : HealerJob
                 HasCleansableDebuff(healTarget))
                 return Role.Esuna;
 
-            for(int i = 0; i < Config.SCH_ST_Heals_Priority.Count; i++)
+            for (int i = 0; i < Config.SCH_ST_Heals_Priority.Count; i++)
             {
                 int index = Config.SCH_ST_Heals_Priority.IndexOf(i + 1);
                 int config = GetMatchingConfigST(index, out uint spell, out bool enabled);

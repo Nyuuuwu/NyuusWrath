@@ -19,7 +19,7 @@ internal partial class DNC : PhysRangedJob
 
         protected override uint Invoke(uint actionID)
         {
-            if (actionID is not Cascade) return actionID;
+            if (actionID is not LegGraze) return actionID;
 
             #region Variables
 
@@ -381,7 +381,382 @@ internal partial class DNC : PhysRangedJob
 
             #endregion
 
-            return actionID;
+            return Cascade;
+        }
+    }
+
+    internal class DNC_ST_AdvancedMode2 : CustomCombo
+    {
+        protected internal override CustomComboPreset Preset =>
+            CustomComboPreset.DNC_ST_AdvancedMode;
+
+        protected override uint Invoke(uint actionID)
+        {
+            if (actionID is not FootGraze) return actionID;
+
+            #region Variables
+
+            var flow = HasEffect(Buffs.SilkenFlow) ||
+                       HasEffect(Buffs.FlourishingFlow);
+            var symmetry = HasEffect(Buffs.SilkenSymmetry) ||
+                           HasEffect(Buffs.FlourishingSymmetry);
+            var targetHpThresholdFeather = Config.DNC_ST_Adv_FeatherBurstPercent;
+            var targetHpThresholdStandard = Config.DNC_ST_Adv_SSBurstPercent;
+            var targetHpThresholdTechnical = Config.DNC_ST_Adv_TSBurstPercent;
+            var tillanaDriftProtectionActive =
+                Config.DNC_ST_ADV_TillanaUse ==
+                (int)Config.TillanaDriftProtection.Favor;
+
+            // Thresholds to wait for TS/SS to come off CD
+            var longAlignmentThreshold = 0.6f;
+            var shortAlignmentThreshold = 0.3f;
+            if (Config.DNC_ST_ADV_AntiDrift == (int)Config.AntiDrift.TripleWeave ||
+                Config.DNC_ST_ADV_AntiDrift == (int)Config.AntiDrift.Both)
+            {
+                longAlignmentThreshold = 0.3f;
+                shortAlignmentThreshold = 0.1f;
+            }
+
+            var needToTech =
+                IsEnabled(CustomComboPreset.DNC_ST_Adv_TS) &&
+                Config.DNC_ST_ADV_TS_IncludeTS == (int)Config.IncludeStep.Yes &&
+                GetCooldownRemainingTime(TechnicalStep) <
+                longAlignmentThreshold && // Up or about to be (some anti-drift)
+                !HasEffect(Buffs.StandardStep) && // After Standard
+                IsOnCooldown(StandardStep) &&
+                actionID is not FootGraze &&
+                GetTargetHPPercent() > targetHpThresholdTechnical && // HP% check
+                LevelChecked(TechnicalStep);
+
+            var needToStandardOrFinish =
+                GetTargetHPPercent() > targetHpThresholdStandard && // HP% check
+                LevelChecked(StandardStep);
+
+            // More Threshold, but only for SS
+            if (Config.DNC_ST_ADV_AntiDrift == (int)Config.AntiDrift.Hold ||
+                Config.DNC_ST_ADV_AntiDrift == (int)Config.AntiDrift.Both)
+            {
+                longAlignmentThreshold = (float)GCD;
+                shortAlignmentThreshold = (float)GCD;
+            }
+
+            var needToFinish =
+                IsEnabled(CustomComboPreset.DNC_ST_Adv_FM) &&
+                HasEffect(Buffs.FinishingMoveReady) &&
+                !HasEffect(Buffs.LastDanceReady) &&
+                ((GetCooldownRemainingTime(StandardStep) < longAlignmentThreshold &&
+                  HasEffect(Buffs.TechnicalFinish)) || // Aggressive anti-drift
+                 (!HasEffect(Buffs.TechnicalFinish) && // Anti-Drift outside of Tech
+                  GetCooldownRemainingTime(StandardStep) <
+                  shortAlignmentThreshold));
+
+            var needToStandard =
+                IsEnabled(CustomComboPreset.DNC_ST_Adv_SS) &&
+                Config.DNC_ST_ADV_SS_IncludeSS == (int)Config.IncludeStep.Yes &&
+                GetCooldownRemainingTime(StandardStep) <
+                longAlignmentThreshold && // Up or about to be (some anti-drift)
+                !HasEffect(Buffs.FinishingMoveReady) &&
+                (IsOffCooldown(Flourish) ||
+                 GetCooldownRemainingTime(Flourish) > 5) &&
+                !HasEffect(Buffs.TechnicalFinish);
+
+            #endregion
+
+            #region Dance Partner
+
+            // Dance Partner
+            if (IsEnabled(CustomComboPreset.DNC_ST_Adv_Partner) && !InCombat() &&
+                ActionReady(ClosedPosition) &&
+                !HasEffect(Buffs.ClosedPosition) &&
+                (GetPartyMembers().Count > 1 || HasCompanionPresent()) &&
+                !InAutoMode(true, false)) // Disabled in Auto-Rotation
+                // todo: do not disable for auto-rotation, provide targeting
+                return ClosedPosition;
+
+            #endregion
+
+            #region Opener
+
+            // Opener
+            if (IsEnabled(CustomComboPreset.DNC_ST_BalanceOpener) &&
+                Opener().FullOpener(ref actionID))
+                return actionID;
+
+            #endregion
+
+            #region Pre-pull
+
+            if (!InCombat() && TargetIsHostile())
+            {
+                // ST Standard Step (Pre-pull)
+                if (IsEnabled(CustomComboPreset.DNC_ST_Adv_SS) &&
+                    IsEnabled(CustomComboPreset.DNC_ST_Adv_SS_Prepull) &&
+                    Config.DNC_ST_ADV_SS_IncludeSS == (int)Config.IncludeStep.Yes &&
+                    ActionReady(StandardStep) &&
+                    !HasEffect(Buffs.FinishingMoveReady) &&
+                    !HasEffect(Buffs.TechnicalFinish) &&
+                    IsOffCooldown(TechnicalStep) &&
+                    IsOffCooldown(StandardStep))
+                    return StandardStep;
+
+                // ST Standard Steps (Pre-pull)
+                if ((IsEnabled(CustomComboPreset.DNC_ST_Adv_SS) &&
+                     IsEnabled(CustomComboPreset.DNC_ST_Adv_SS_Prepull)) &&
+                    HasEffect(Buffs.StandardStep) &&
+                    Gauge.CompletedSteps < 2)
+                    return Gauge.NextStep;
+
+                // ST Peloton
+                if (IsEnabled(CustomComboPreset.DNC_ST_Adv_Peloton) &&
+                    !HasEffectAny(Buffs.Peloton) &&
+                    GetBuffRemainingTime(Buffs.StandardStep) > 5)
+                    return Peloton;
+            }
+
+            #endregion
+
+            #region Dance Fills
+
+            // ST Standard (Dance) Steps & Fill
+            if (IsEnabled(CustomComboPreset.DNC_ST_Adv_SS) &&
+                HasEffect(Buffs.StandardStep))
+                return Gauge.CompletedSteps < 2
+                    ? Gauge.NextStep
+                    : FinishOrHold(StandardFinish2);
+
+            // ST Technical (Dance) Steps & Fill
+            if ((IsEnabled(CustomComboPreset.DNC_ST_Adv_TS)) &&
+                HasEffect(Buffs.TechnicalStep))
+                return Gauge.CompletedSteps < 4
+                    ? Gauge.NextStep
+                    : FinishOrHold(TechnicalFinish4);
+
+            #endregion
+
+            #region Weaves
+
+            // ST Devilment
+            if (IsEnabled(CustomComboPreset.DNC_ST_Adv_Devilment) &&
+                CanWeave() &&
+                LevelChecked(Devilment) &&
+                actionID is not FootGraze &&
+                GetCooldownRemainingTime(Devilment) < 0.05 &&
+                (HasEffect(Buffs.TechnicalFinish) ||
+                 WasLastAction(TechnicalFinish4) ||
+                 !LevelChecked(TechnicalStep)))
+                return Devilment;
+
+            // ST Flourish
+            if (IsEnabled(CustomComboPreset.DNC_ST_Adv_Flourish) &&
+                CanWeave() &&
+                ActionReady(Flourish) &&
+                !WasLastWeaponskill(TechnicalFinish4) &&
+                IsOnCooldown(Devilment) &&
+                (GetCooldownRemainingTime(Devilment) > 50 ||
+                 (HasEffect(Buffs.Devilment) &&
+                  GetBuffRemainingTime(Buffs.Devilment) < 19)) &&
+                !HasEffect(Buffs.ThreeFoldFanDance) &&
+                !HasEffect(Buffs.FourFoldFanDance) &&
+                !HasEffect(Buffs.FlourishingSymmetry) &&
+                !HasEffect(Buffs.FlourishingFlow) &&
+                !HasEffect(Buffs.FinishingMoveReady) &&
+                ((CombatEngageDuration().TotalSeconds < 20 &&
+                  HasEffect(Buffs.TechnicalFinish)) ||
+                 CombatEngageDuration().TotalSeconds > 20))
+                return Flourish;
+
+            if ((Config.DNC_ST_ADV_AntiDrift == (int)Config.AntiDrift.TripleWeave ||
+                 Config.DNC_ST_ADV_AntiDrift == (int)Config.AntiDrift.Both) &&
+                (HasEffect(Buffs.ThreeFoldFanDance) ||
+                 HasEffect(Buffs.FourFoldFanDance)) &&
+                CombatEngageDuration().TotalSeconds > 20 &&
+                HasEffect(Buffs.TechnicalFinish) &&
+                GetCooldownRemainingTime(Flourish) > 58)
+            {
+                if (HasEffect(Buffs.ThreeFoldFanDance) &&
+                    CanDelayedWeave())
+                    return FanDance3;
+                if (HasEffect(Buffs.FourFoldFanDance))
+                    return FanDance4;
+            }
+
+            // Variant Cure
+            if (Variant.CanCure(CustomComboPreset.DNC_Variant_Cure, Config.DNCVariantCurePercent))
+                return Variant.Cure;
+
+            // ST Interrupt
+            if (Role.CanHeadGraze(CustomComboPreset.DNC_ST_Adv_Interrupt, WeaveTypes.Weave) &&
+                !HasEffect(Buffs.TechnicalFinish))
+                return Role.HeadGraze;
+
+            // Variant Rampart
+            if (Variant.CanRampart(CustomComboPreset.DNC_Variant_Rampart, WeaveTypes.Weave))
+                return Variant.Rampart;
+
+            if (CanWeave() && !WasLastWeaponskill(TechnicalFinish4))
+            {
+                // ST Fans
+                if (IsEnabled(CustomComboPreset.DNC_ST_Adv_FanProccs))
+                {
+                    if (IsEnabled(CustomComboPreset.DNC_ST_Adv_FanProcc3) &&
+                        HasEffect(Buffs.ThreeFoldFanDance))
+                        return FanDance3;
+
+                    if (IsEnabled(CustomComboPreset.DNC_ST_Adv_FanProcc4) &&
+                        HasEffect(Buffs.FourFoldFanDance))
+                        return FanDance4;
+                }
+
+                // ST Feathers
+                if (IsEnabled(CustomComboPreset.DNC_ST_Adv_Feathers) &&
+                    LevelChecked(FanDance1))
+                {
+                    // FD1 HP% Dump
+                    if (GetTargetHPPercent() <= targetHpThresholdFeather &&
+                        Gauge.Feathers > 0)
+                        return FanDance1;
+
+                    if (LevelChecked(TechnicalStep))
+                    {
+                        // Burst FD1
+                        if (HasEffect(Buffs.TechnicalFinish) &&
+                            Gauge.Feathers > 0)
+                            return FanDance1;
+
+                        // FD1 Pooling
+                        if (Gauge.Feathers > 3 &&
+                            (HasEffect(Buffs.SilkenSymmetry) ||
+                             HasEffect(Buffs.SilkenFlow))
+                           )
+
+                            return FanDance1;
+                    }
+
+                    // FD1 Non-pooling & under burst level
+                    if (!LevelChecked(TechnicalStep) && Gauge.Feathers > 0)
+                        return FanDance1;
+                }
+
+                // ST Panic Heals
+                if (IsEnabled(CustomComboPreset.DNC_ST_Adv_PanicHeals))
+                {
+                    if (ActionReady(CuringWaltz) &&
+                        PlayerHealthPercentageHp() <
+                        Config.DNC_ST_Adv_PanicHealWaltzPercent)
+                        return CuringWaltz;
+
+                    if (Role.CanSecondWind(Config.DNC_ST_Adv_PanicHealWindPercent))
+                        return Role.SecondWind;
+                }
+
+                // ST Improvisation
+                if (IsEnabled(CustomComboPreset.DNC_ST_Adv_Improvisation) &&
+                    ActionReady(Improvisation) &&
+                    !HasEffect(Buffs.TechnicalFinish) &&
+                    InCombat() &&
+                    EnemyIn8Yalms)
+                    return Improvisation;
+            }
+
+            #endregion
+
+            #region GCD
+
+            // ST Technical Step
+            if (needToTech && !HasEffect(Buffs.FlourishingFinish))
+                return TechnicalStep;
+
+            // ST Last Dance
+            if (IsEnabled(CustomComboPreset.DNC_ST_Adv_LD) && // Enabled
+                HasEffect(Buffs.LastDanceReady) && // Ready
+                (HasEffect(Buffs.TechnicalFinish) || // Has Tech
+                 !(IsOnCooldown(TechnicalStep) && // Or can't hold it for tech
+                   GetCooldownRemainingTime(TechnicalStep) < 20 &&
+                   GetBuffRemainingTime(Buffs.LastDanceReady) >
+                   GetCooldownRemainingTime(TechnicalStep) + 4) ||
+                 GetBuffRemainingTime(Buffs.LastDanceReady) <
+                 4)) // Or last second
+                return LastDance;
+
+            // ST Standard Step (Finishing Move)
+            if (needToStandardOrFinish && needToFinish && EnemyIn15Yalms)
+                return OriginalHook(FinishingMove);
+
+            // ST Standard Step
+            if (needToStandardOrFinish && needToStandard)
+                return StandardStep;
+
+            // Emergency Starfall usage
+            if (HasEffect(Buffs.FlourishingStarfall) &&
+                GetBuffRemainingTime(Buffs.FlourishingStarfall) < 4)
+                return StarfallDance;
+
+            // ST Dance of the Dawn
+            if (IsEnabled(CustomComboPreset.DNC_ST_Adv_DawnDance) &&
+                HasEffect(Buffs.DanceOfTheDawnReady) &&
+                LevelChecked(DanceOfTheDawn) &&
+                (GetCooldownRemainingTime(TechnicalStep) > 5 ||
+                 IsOffCooldown(TechnicalStep)) && // Tech is up
+                (Gauge.Esprit >=
+                 Config.DNC_ST_Adv_SaberThreshold || // >esprit threshold use
+                 (HasEffect(Buffs
+                      .TechnicalFinish) && // will overcap with Tillana if not used
+                  !tillanaDriftProtectionActive && Gauge.Esprit >= 50) ||
+                 (GetBuffRemainingTime(Buffs.DanceOfTheDawnReady) < 5 &&
+                  Gauge.Esprit >= 50))) // emergency use
+                return OriginalHook(DanceOfTheDawn);
+
+            // ST Saber Dance (Emergency Use)
+            if (IsEnabled(CustomComboPreset.DNC_ST_Adv_SaberDance) &&
+                LevelChecked(SaberDance) &&
+                (Gauge.Esprit >=
+                 Config
+                     .DNC_ST_Adv_SaberThreshold || // above esprit threshold use
+                 (HasEffect(Buffs
+                      .TechnicalFinish) && // will overcap with Tillana if not used
+                  !tillanaDriftProtectionActive && Gauge.Esprit >= 50)))
+                return LevelChecked(DanceOfTheDawn) &&
+                       HasEffect(Buffs.DanceOfTheDawnReady)
+                    ? OriginalHook(DanceOfTheDawn)
+                    : SaberDance;
+
+            if (HasEffect(Buffs.FlourishingStarfall))
+                return StarfallDance;
+
+            // ST Tillana
+            if (HasEffect(Buffs.FlourishingFinish) &&
+                IsEnabled(CustomComboPreset.DNC_ST_Adv_Tillana) &&
+                EnemyIn15Yalms)
+                return Tillana;
+
+            // ST Saber Dance
+            if (IsEnabled(CustomComboPreset.DNC_ST_Adv_SaberDance) &&
+                LevelChecked(SaberDance) &&
+                Gauge.Esprit >=
+                Config.DNC_ST_Adv_SaberThreshold || // Above esprit threshold use
+                (HasEffect(Buffs.TechnicalFinish) &&
+                 Gauge.Esprit >= 50) && // Burst
+                (GetCooldownRemainingTime(TechnicalStep) > 5 ||
+                 IsOffCooldown(TechnicalStep))) // Tech is up
+                return SaberDance;
+
+            // ST combos and burst attacks
+            if (LevelChecked(Fountain) &&
+                ComboAction is Cascade &&
+                ComboTimer is < 2 and > 0)
+                return Fountain;
+
+            if (LevelChecked(Fountainfall) && flow)
+                return Fountainfall;
+            if (LevelChecked(ReverseCascade) && symmetry)
+                return ReverseCascade;
+            if (LevelChecked(Fountain) && ComboAction is Cascade &&
+                ComboTimer > 0)
+                return Fountain;
+
+            #endregion
+
+            return Cascade;
         }
     }
 

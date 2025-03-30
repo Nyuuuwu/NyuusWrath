@@ -24,6 +24,23 @@ namespace WrathCombo.CustomComboNS.Functions
 {
     internal abstract partial class CustomComboFunctions
     {
+        public bool BossCheck()
+        {
+            double maxHealth = LocalPlayer.MaxHp;
+
+            if (CurrentTarget is not IBattleChara chara)
+                return false;
+
+            if (chara.CastActionId != 26659 &&
+                EnemyHealthCurrentHp() >= maxHealth * 10 && GetTargetHPPercent() >= 1)
+            {
+                return true;
+            }
+
+            // Else
+            else return false;
+        }
+
         private static Dictionary<uint, bool> NPCPositionals = new Dictionary<uint, bool>();
         /// <summary> Gets the current target or null. </summary>
         public static IGameObject? CurrentTarget => Svc.Targets.Target;
@@ -379,17 +396,17 @@ namespace WrathCombo.CustomComboNS.Functions
             {
                 return 1;
             }
-            
+
             if (regionDegrees is >= 135 and <= 225)
             {
                 return 2;
             }
-            
+
             if (regionDegrees is >= 225 and <= 315)
             {
                 return 3;
             }
-            
+
             if (regionDegrees is >= 315 or <= 45)
             {
                 return 4;
@@ -420,7 +437,7 @@ namespace WrathCombo.CustomComboNS.Functions
             {
                 return true;
             }
-            
+
             return false;
         }
 
@@ -449,7 +466,7 @@ namespace WrathCombo.CustomComboNS.Functions
             {
                 return true;
             }
-            
+
             // right flank
             if (regionDegrees is >= 225 and <= 315)
             {

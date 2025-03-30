@@ -139,7 +139,7 @@ internal partial class MNK : MeleeJob
 
         protected override uint Invoke(uint actionID)
         {
-            if (actionID is not (Bootshine or LeapingOpo))
+            if (actionID is not (Bootshine or TrueStrike))
                 return actionID;
 
             //Variant Cure
@@ -176,7 +176,7 @@ internal partial class MNK : MeleeJob
                     return actionID;
                 }
 
-            if (IsEnabled(CustomComboPreset.MNK_STUseBuffs) &&
+            if (IsEnabled(CustomComboPreset.MNK_STUseBuffs) && actionID is not TrueStrike &&
                 IsEnabled(CustomComboPreset.MNK_STUseROF) &&
                 !HasEffect(Buffs.FiresRumination) &&
                 ActionReady(RiddleOfFire) &&
@@ -186,7 +186,7 @@ internal partial class MNK : MeleeJob
                 return RiddleOfFire;
 
             // OGCDs
-            if (CanWeave())
+            if (CanWeave() && actionID is not TrueStrike)
             {
                 if (IsEnabled(CustomComboPreset.MNK_STUseBuffs))
                 {
@@ -231,13 +231,13 @@ internal partial class MNK : MeleeJob
                     : OriginalHook(Bootshine);
 
             // Masterful Blitz
-            if (IsEnabled(CustomComboPreset.MNK_STUseMasterfulBlitz) &&
+            if (IsEnabled(CustomComboPreset.MNK_STUseMasterfulBlitz) && actionID is not TrueStrike &&
                 LevelChecked(MasterfulBlitz) &&
                 !HasEffect(Buffs.PerfectBalance) && InMasterfulRange() &&
                 !IsOriginal(MasterfulBlitz))
                 return OriginalHook(MasterfulBlitz);
 
-            if (IsEnabled(CustomComboPreset.MNK_STUseBuffs))
+            if (IsEnabled(CustomComboPreset.MNK_STUseBuffs) && actionID is not TrueStrike)
             {
                 if (IsEnabled(CustomComboPreset.MNK_STUseFiresReply) &&
                     HasEffect(Buffs.FiresRumination) &&

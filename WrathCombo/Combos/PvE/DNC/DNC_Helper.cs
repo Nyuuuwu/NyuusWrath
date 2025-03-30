@@ -919,6 +919,8 @@ internal partial class DNC
     public const uint
         // Single Target
         Cascade = 15989,
+        LegGraze = 7554,
+        FootGraze = 7553,
         Fountain = 15990,
         ReverseCascade = 15991,
         Fountainfall = 15992,

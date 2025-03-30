@@ -18,7 +18,7 @@ internal partial class PLD : TankJob
 
         protected override uint Invoke(uint actionID)
         {
-            if (actionID is not FastBlade)
+            if (actionID is not Windbite)
                 return actionID;
 
             #region Variables
@@ -206,7 +206,7 @@ internal partial class PLD : TankJob
                     return OriginalHook(RageOfHalone);
             }
 
-            return actionID;
+            return FastBlade;
         }
     }
 
@@ -273,7 +273,7 @@ internal partial class PLD : TankJob
                             return Role.Rampart;
 
                         //Reprisal
-                        if (Role.CanReprisal(90, checkTargetForDebuff:false))
+                        if (Role.CanReprisal(90, checkTargetForDebuff: false))
                             return Role.Reprisal;
                     }
 
@@ -352,7 +352,7 @@ internal partial class PLD : TankJob
 
         protected override uint Invoke(uint actionID)
         {
-            if (actionID is not FastBlade)
+            if (actionID is not Windbite)
                 return actionID;
 
             #region Variables
@@ -474,8 +474,8 @@ internal partial class PLD : TankJob
                             return OriginalHook(Sentinel);
 
                         // Rampart
-                        if (IsEnabled(CustomComboPreset.PLD_ST_AdvancedMode_Rampart) && 
-                            
+                        if (IsEnabled(CustomComboPreset.PLD_ST_AdvancedMode_Rampart) &&
+
                             Role.CanRampart(Config.PLD_ST_Rampart_Health) && (Config.PLD_ST_Rampart_SubOption == 1 ||
                                 (TargetIsBoss() && Config.PLD_ST_Rampart_SubOption == 2)))
                             return Role.Rampart;
@@ -550,7 +550,7 @@ internal partial class PLD : TankJob
                     return OriginalHook(RageOfHalone);
             }
 
-            return actionID;
+            return FastBlade;
         }
     }
 
@@ -657,7 +657,7 @@ internal partial class PLD : TankJob
                             return OriginalHook(Sentinel);
 
                         // Rampart
-                        if (IsEnabled(CustomComboPreset.PLD_AoE_AdvancedMode_Rampart) && 
+                        if (IsEnabled(CustomComboPreset.PLD_AoE_AdvancedMode_Rampart) &&
                             Role.CanRampart(Config.PLD_AoE_Rampart_Health) && (Config.PLD_AoE_Rampart_SubOption == 1 ||
                                 (TargetIsBoss() && Config.PLD_AoE_Rampart_SubOption == 2)))
                             return Role.Rampart;

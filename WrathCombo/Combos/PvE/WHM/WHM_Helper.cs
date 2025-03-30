@@ -9,7 +9,7 @@ namespace WrathCombo.Combos.PvE;
 internal partial class WHM
 {
     internal static readonly List<uint>
-        StoneGlareList = [Stone1, Stone2, Stone3, Stone4, Glare1, Glare3];
+        StoneGlareList = [Stone1];
     internal static readonly Dictionary<uint, ushort>
         AeroList = new()
         {
