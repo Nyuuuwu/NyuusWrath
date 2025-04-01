@@ -236,10 +236,10 @@ internal partial class SGE : HealerJob
                             if (TraitLevelChecked(Traits.OffensiveMagicMasteryII))
                                 dotDebuff = Math.Max(dotDebuff, GetDebuffRemainingTime(Debuffs.EukrasianDyskrasia));
 
-                            float refreshTimer = Config.SGE_ST_DPS_EDosis_Adv ? Config.SGE_ST_DPS_EDosisThreshold : 5;
+                            float refreshTimer = Config.SGE_ST_DPS_EDosis_Adv ? Config.SGE_ST_DPS_EDosisThreshold : 3;
                             int hpThreshold = Config.SGE_ST_DPS_EDosisSubOption == 1 || !InBossEncounter() ? Config.SGE_ST_DPS_EDosisOption : 0;
 
-                            if (dotDebuff <= refreshTimer &&
+                            if (dotDebuff <= refreshTimer && BossCheck() &&
                                 GetTargetHPPercent() > hpThreshold)
                                 return Eukrasia;
                         }
